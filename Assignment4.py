@@ -1,52 +1,63 @@
-import sqlite3
 import pandas as pd
+import os
 
 class Employee:
     def __init__(self):
-        self.con = sqlite3.connect("employee.db")
-        self.cur = self.con.cursor()
-        self.cur.execute(
-            "CREATE TABLE IF NOT EXISTS employee "
-            "(ID INTEGER PRIMARY KEY, Name TEXT, Salary INTEGER)"
-        )
+        if os.path.exists("employee.csv"):
+            self.df = pd.read_csv("employee.csv")
+        else:
+            self.df = pd.DataFrame(columns=["id", "name", "salary"])
 
     def add(self):
         id = int(input("Enter ID: "))
         name = input("Enter Name: ")
         salary = int(input("Enter Salary: "))
 
-        self.cur.execute(
-            "INSERT INTO employee VALUES(?,?,?)",
-            (id, name, salary)
-        )
-        self.con.commit()
+        new_record = pd.DataFrame({
+            "id": [id],
+            "name": [name],
+            "salary": [salary]
+        })
+
+        self.df = pd.concat([self.df, new_record], ignore_index=True)
+        self.df.to_csv("employee.csv", index=False)
+
+        print("Record added")
 
     def display(self):
-        df = pd.read_sql("SELECT * FROM employee", self.con)
-        print(df)
+        print(self.df)
 
     def update(self):
         id = int(input("Enter ID: "))
         salary = int(input("Enter new salary: "))
 
-        self.cur.execute(
-            "UPDATE employee SET Salary=? WHERE ID=?",
-            (salary, id)
-        )
-        self.con.commit()
+        if id in self.df["id"].values:
+            self.df.loc[self.df["id"] == id, "salary"] = salary
+            self.df.to_csv("employee.csv", index=False)
+            print("Record updated")
+        else:
+            print("Employee not found")
 
     def delete(self):
         id = int(input("Enter ID: "))
-        self.cur.execute(
-            "DELETE FROM employee WHERE ID=?", (id,)
-        )
-        self.con.commit()
+
+        if id in self.df["id"].values:
+            self.df = self.df[self.df["id"] != id]
+            self.df.to_csv("employee.csv", index=False)
+            print("Record deleted")
+        else:
+            print("Employee not found")
 
 
 e = Employee()
 
 while True:
-    print("\n1.Add  2.Display  3.Update  4.Delete  5.Exit")
+    print("\n1. Add")
+    print("2. Display")
+    print("3. Update")
+    print("4. Delete")
+    print("5. Exit")
+
     ch = int(input("Enter choice: "))
 
     if ch == 1:
@@ -59,3 +70,5 @@ while True:
         e.delete()
     elif ch == 5:
         break
+    else:
+        print("Invalid choice")
